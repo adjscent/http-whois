@@ -1,0 +1,59 @@
+services:
+  http-whois:
+    build: .
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.whois-api.rule=Host(`example.com`)"
+      - "traefik.http.routers.whois-api.entrypoints=websecure"
+      - "traefik.http.routers.whois-api.tls.certresolver=letsresolver"
+      - "traefik.http.services.whois-api.loadbalancer.server.port=8080"
+    networks:
+      - traefik_proxy
+
+  traefik:
+    image: traefik:latest
+    container_name: traefik
+    command:
+      - "--log.level=DEBUG"
+      - "--providers.docker"
+      - "--api=false"
+      - "--api.dashboard=false"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.docker.exposedbydefault=false"
+      - "--certificatesresolvers.letsresolver.acme.email=test@example.com"
+      - "--certificatesresolvers.letsresolver.acme.storage=/data/letsencrypt/acme.json"
+      - "--certificatesresolvers.letsresolver.acme.tlschallenge=true"
+    #      - "--accesslog=true"
+    #      - "--accesslog.filepath=/logs/traefik_access.log"
+    #      - "--accesslog.format=json"
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    labels:
+      - traefik.enable=true
+      - "traefik.http.routers.dashboard.rule=(PathPrefix(`/api`) || PathPrefix(`/dashboard`)) && Host(`hostname.tld`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - traefik.http.routers.dashboard.tls=true
+      - traefik.http.routers.dashboard.tls.certresolver=letsresolver
+      - traefik.http.routers.dashboard.entrypoints=websecure
+#      - "traefik.http.routers.dashboard.middlewares=auth"
+#      - "traefik.http.middlewares.auth.basicauth.users=blahblablah"
+#      - "traefik.http.middlewares.auth.basicauth.removeheader=true"
+      # global redirect to https
+      - traefik.http.routers.http-catchall.rule=hostregexp(`{host:.+}`)
+      - traefik.http.routers.http-catchall.entrypoints=web
+      - traefik.http.routers.http-catchall.middlewares=redirect-to-https
+      # middleware redirect
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+#      - "./traefik.yml:/etc/traefik/traefik.yml"
+      - "./data/letsencrypt:/data/letsencrypt"
+    networks:
+      - traefik_proxy
+
+networks:
+  traefik_proxy:
+    external: true
