@@ -1,4 +1,4 @@
-# http-whois
+# http-whois [![Docker Image CI](https://github.com/adjscent/http-whois/actions/workflows/docker-image.yml/badge.svg)](https://github.com/adjscent/http-whois/actions/workflows/docker-image.yml)
 
 
 This is a http proxy for the whois.
