@@ -63,7 +63,7 @@ func main() {
 		now := time.Now()
 		expiryDate := result.Domain.ExpirationDateInTime
 		if expiryDate == nil {
-			err := fmt.Errorf("failed to parse expiration date: %w", err)
+			err := fmt.Errorf("failed to parse expiration date")
 			logger.L.Error(err)
 			c.JSON(http.StatusInternalServerError, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusInternalServerError}})
 
