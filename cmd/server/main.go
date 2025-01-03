@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/likexian/whois"
 	"github.com/likexian/whois-parser"
+	"golang.org/x/net/publicsuffix"
 )
 
 const (
@@ -30,9 +30,15 @@ func main() {
 			return
 		}
 
-		rootDomain := getRootDomainFromDomain(json.Domain)
+		rootDomain, err := getRootDomain(json.Domain)
+		if err != nil {
+			logger.L.Error(err)
+			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
 
-		rawResult, err := whois.Whois(rootDomain, "whois.iana.org")
+			return
+		}
+
+		rawResult, err := whois.Whois(rootDomain)
 		if err != nil {
 			logger.L.Error(err)
 			c.JSON(http.StatusInternalServerError, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusInternalServerError}})
@@ -100,29 +106,10 @@ func checkValidFromRaw(raw string) bool {
 	return true
 }
 
-func getRootDomainFromDomain(domain string) string {
-	domain = strings.TrimSpace(domain)
-
-	if domain == "" {
-		return ""
+func getRootDomain(fqdn string) (string, error) {
+	domain, err := publicsuffix.EffectiveTLDPlusOne(fqdn)
+	if err != nil {
+		return "", err
 	}
-	domainSplit := strings.Split(domain, ".")
-	domainLen := len(domainSplit)
-
-	//For domains that only contain number
-	if isStringDigit(domainSplit[domainLen-1]) {
-		return domain
-	}
-
-	rootDomain := domain
-	if domainLen > 2 {
-		rootDomain = domainSplit[domainLen-2] + "." + domainSplit[domainLen-1]
-	}
-
-	return rootDomain
-}
-
-func isStringDigit(s string) bool {
-	re := regexp.MustCompile(`^\d+$`) // Matches a string containing only digits
-	return re.MatchString(s)
+	return domain, nil
 }
