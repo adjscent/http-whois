@@ -38,10 +38,11 @@ func main() {
 			return
 		}
 
-		rawResult, err := whois.Whois(rootDomain)
+		// do not remove the whois server
+		rawResult, err := whois.Whois(rootDomain, "whois.iana.org")
 		if err != nil {
 			logger.L.Error(err)
-			c.JSON(http.StatusInternalServerError, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusInternalServerError}})
+			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
 
 			return
 		}
@@ -61,7 +62,7 @@ func main() {
 		result, err := whoisparser.Parse(rawResult)
 		if err != nil {
 			logger.L.Error(err)
-			c.JSON(http.StatusInternalServerError, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusInternalServerError}})
+			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
 
 			return
 		}
@@ -71,7 +72,7 @@ func main() {
 		if expiryDate == nil {
 			err := fmt.Errorf("failed to parse expiration date")
 			logger.L.Error(err)
-			c.JSON(http.StatusInternalServerError, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusInternalServerError}})
+			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
 
 			return
 		}
