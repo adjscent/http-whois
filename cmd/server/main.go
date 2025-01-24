@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/likexian/whois"
 	"github.com/likexian/whois-parser"
-	"github.com/weppos/publicsuffix-go/net/publicsuffix"
+	"github.com/weppos/publicsuffix-go/publicsuffix"
 	"go.uber.org/multierr"
 )
 
@@ -126,7 +126,7 @@ func checkValidFromRaw(raw string) bool {
 }
 
 func getRootDomain(fqdn string) (string, error) {
-	domain, err := publicsuffix.EffectiveTLDPlusOne(fqdn)
+	domain, err := publicsuffix.DomainFromListWithOptions(publicsuffix.DefaultList, fqdn, publicsuffix.DefaultFindOptions)
 	if err != nil {
 		return "", err
 	}
