@@ -8,6 +8,7 @@ import (
 
 	"github.com/adjscent/http-whois/pkg/logger"
 	"github.com/adjscent/http-whois/pkg/model"
+	"github.com/avast/retry-go"
 	"github.com/gin-gonic/gin"
 	"github.com/likexian/whois"
 	"github.com/likexian/whois-parser"
@@ -42,8 +43,19 @@ func main() {
 		}
 
 		// do not remove the whois server
-		rawResult, err := whois.Whois(rootDomain, "whois.iana.org")
-		if err != nil {
+		var rawResult string
+
+		if err = retry.Do(
+			func() error {
+				result, err2 := whois.Whois(rootDomain, "whois.iana.org")
+				if err2 != nil {
+					return err2
+				}
+
+				rawResult = result
+
+				return nil
+			}, retry.Attempts(3)); err != nil {
 			err := multierr.Append(err, fmt.Errorf("request: %v", json))
 			logger.L.Error(err)
 			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
@@ -67,7 +79,7 @@ func main() {
 		if err != nil {
 			err := multierr.Append(err, fmt.Errorf("request: %v", json))
 			logger.L.Error(err)
-			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
+			c.JSON(http.StatusBadRequest, model.WhoisResponse{Data: model.WhoisData{IsValid: false, RootDomain: rootDomain, Raw: rawResult}, Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
 
 			return
 		}
@@ -78,7 +90,7 @@ func main() {
 			err := fmt.Errorf("failed to parse expiration date")
 			err = multierr.Append(err, fmt.Errorf("request: %v", json))
 			logger.L.Error(err)
-			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
+			c.JSON(http.StatusBadRequest, model.WhoisResponse{Data: model.WhoisData{IsValid: false, RootDomain: rootDomain, Raw: rawResult}, Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
 
 			return
 		}
