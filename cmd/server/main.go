@@ -126,7 +126,9 @@ func checkValidFromRaw(raw string) bool {
 }
 
 func getRootDomain(fqdn string) (string, error) {
-	domain, err := publicsuffix.DomainFromListWithOptions(publicsuffix.DefaultList, fqdn, publicsuffix.DefaultFindOptions)
+	list := publicsuffix.DefaultList
+
+	domain, err := publicsuffix.DomainFromListWithOptions(list, fqdn, publicsuffix.DefaultFindOptions)
 	if err != nil {
 		return "", err
 	}
