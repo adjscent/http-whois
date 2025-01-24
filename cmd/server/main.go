@@ -12,8 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/likexian/whois"
 	"github.com/likexian/whois-parser"
+	"github.com/weppos/publicsuffix-go/net/publicsuffix"
 	"go.uber.org/multierr"
-	"golang.org/x/net/publicsuffix"
 )
 
 const (
