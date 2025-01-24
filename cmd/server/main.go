@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/likexian/whois"
 	"github.com/likexian/whois-parser"
+	"go.uber.org/multierr"
 	"golang.org/x/net/publicsuffix"
 )
 
@@ -24,6 +25,7 @@ func main() {
 	router.POST(path, func(c *gin.Context) {
 		var json model.WhoisRequest
 		if err := c.BindJSON(&json); err != nil {
+			err := multierr.Append(err, fmt.Errorf("request: %v", json))
 			logger.L.Error(err)
 			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
 
@@ -32,6 +34,7 @@ func main() {
 
 		rootDomain, err := getRootDomain(json.Domain)
 		if err != nil {
+			err := multierr.Append(err, fmt.Errorf("request: %v", json))
 			logger.L.Error(err)
 			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
 
@@ -41,6 +44,7 @@ func main() {
 		// do not remove the whois server
 		rawResult, err := whois.Whois(rootDomain, "whois.iana.org")
 		if err != nil {
+			err := multierr.Append(err, fmt.Errorf("request: %v", json))
 			logger.L.Error(err)
 			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
 
@@ -61,6 +65,7 @@ func main() {
 
 		result, err := whoisparser.Parse(rawResult)
 		if err != nil {
+			err := multierr.Append(err, fmt.Errorf("request: %v", json))
 			logger.L.Error(err)
 			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
 
@@ -71,6 +76,7 @@ func main() {
 		expiryDate := result.Domain.ExpirationDateInTime
 		if expiryDate == nil {
 			err := fmt.Errorf("failed to parse expiration date")
+			err = multierr.Append(err, fmt.Errorf("request: %v", json))
 			logger.L.Error(err)
 			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
 
