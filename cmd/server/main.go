@@ -33,19 +33,14 @@ func main() {
 			return
 		}
 
-		rootDomain, err := getRootDomain(json.Domain)
-		if err != nil {
-			err := multierr.Append(err, fmt.Errorf("request: %v", json))
-			logger.L.Error(err)
-			c.JSON(http.StatusBadRequest, model.WhoisResponse{Error: model.Error{Message: err.Error(), Code: http.StatusBadRequest}})
+		logger.L.Infof("processing domain: %v", json.Domain)
 
-			return
-		}
+		rootDomain := getRootDomain(json.Domain)
 
 		// do not remove the whois server
 		var rawResult string
 
-		if err = retry.Do(
+		if err := retry.Do(
 			func() error {
 				result, err2 := whois.Whois(rootDomain, "whois.iana.org")
 				if err2 != nil {
@@ -125,12 +120,15 @@ func checkValidFromRaw(raw string) bool {
 	return true
 }
 
-func getRootDomain(fqdn string) (string, error) {
+func getRootDomain(fqdn string) string {
 	list := publicsuffix.DefaultList
 
 	domain, err := publicsuffix.DomainFromListWithOptions(list, fqdn, publicsuffix.DefaultFindOptions)
 	if err != nil {
-		return "", err
+		logger.L.Errorf("err: %v, ignoring suffix errors, returning original fqdn", err)
+
+		return fqdn
 	}
-	return domain, nil
+
+	return domain
 }
